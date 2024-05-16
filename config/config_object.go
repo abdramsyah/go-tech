@@ -8,6 +8,7 @@ type ConfigObject struct {
 	AppMigrationPath string `mapstructure:"APP_MIGRATION_PATH"`
 	DumpRequest      string `mapstructure:"SHOW_REQUEST"`
 	AllowOrigins     string `mapstructure:"ALLOW_ORIGINS"`
+	LoginURL         string `mapstructure:"LOGIN_URL"`
 	//	DB
 	DBHost        string `mapstructure:"DB_HOST"`
 	DBPort        int    `mapstructure:"DB_PORT"`
@@ -41,4 +42,11 @@ type ConfigObject struct {
 	JwtRefreshSecret string `mapstructure:"JWT_REFRESH_SECRET"`
 	JwtAccessTtl     string `mapstructure:"JWT_ACCESS_TTL"`
 	JwtRefreshTtl    string `mapstructure:"JWT_REFRESH_TTL"`
+	//	Email Setting
+	MailSmtpHost     string `mapstructure:"MAIL_SMTP_HOST"`
+	MailSmtpPort     int    `mapstructure:"MAIL_SMTP_PORT"`
+	MailSenderName   string `mapstructure:"MAIL_SENDER_NAME"`
+	MailAuth         string `mapstructure:"MAIL_AUTH"`
+	MailAuthPassword string `mapstructure:"MAIL_AUTH_PASSWORD"`
+	MailAlias        string `mapstructure:"MAIL_ALIAS"`
 }

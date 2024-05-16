@@ -1,8 +1,9 @@
 package router
 
 import (
-	"emoney-backoffice/internal/app/handler"
-	"emoney-backoffice/internal/app/middleware"
+	"go-tech/internal/app/handler"
+	"go-tech/internal/app/middleware"
+
 	"github.com/labstack/echo/v4"
 )
 

@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/model"
-	"emoney-backoffice/internal/app/util"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/model"
+	"go-tech/internal/app/util"
+
 	"gorm.io/gorm"
 )
 

@@ -1,6 +1,6 @@
 package dto
 
-import "emoney-backoffice/internal/app/constant"
+import "go-tech/internal/app/constant"
 
 type (
 	HttpResponse struct {

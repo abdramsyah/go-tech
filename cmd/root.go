@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"emoney-backoffice/config"
-	"emoney-backoffice/internal/app/appcontext"
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/repository"
-	"emoney-backoffice/internal/app/server"
-	"emoney-backoffice/internal/app/service"
-	"emoney-backoffice/pkg/cache"
+	"go-tech/config"
+	"go-tech/internal/app/appcontext"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/repository"
+	"go-tech/internal/app/server"
+	"go-tech/internal/app/service"
+	"go-tech/pkg/cache"
 	"fmt"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -81,9 +81,11 @@ func init() {
 func initRepository(repoOption repository.Option) *repository.Repository {
 	admin := repository.NewAdminRepository(repoOption)
 	auditTrail := repository.NewAuditTrailRepository(repoOption)
+	user := repository.NewUserRepository(repoOption)
 	repositories := repository.Repository{
 		Admin:      admin,
 		AuditTrail: auditTrail,
+		User: user,
 	}
 	return &repositories
 }
@@ -92,10 +94,12 @@ func initService(serviceOption service.Option) *service.Services {
 	health := service.NewHealthService(serviceOption)
 	auth := service.NewAuthService(serviceOption)
 	auditTrail := service.NewAuditTrailService(serviceOption)
+	// user := service.NewAuditTrailService(serviceOption)
 	services := service.Services{
 		Health:     health,
 		Auth:       auth,
 		AuditTrail: auditTrail,
+		// User: user,
 	}
 	return &services
 }

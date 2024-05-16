@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"emoney-backoffice/config"
-	"emoney-backoffice/internal/app/appcontext"
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/constant"
+	"go-tech/config"
+	"go-tech/internal/app/appcontext"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/constant"
 	"flag"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"

@@ -1,8 +1,8 @@
 package appcontext
 
 import (
-	"emoney-backoffice/config"
-	"emoney-backoffice/internal/app/driver"
+	"go-tech/config"
+	"go-tech/internal/app/driver"
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gomodule/redigo/redis"

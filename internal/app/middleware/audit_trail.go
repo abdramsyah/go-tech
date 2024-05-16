@@ -1,12 +1,13 @@
 package middleware
 
 import (
-	"emoney-backoffice/internal/app/constant"
-	"emoney-backoffice/internal/app/dto"
-	"emoney-backoffice/internal/app/util"
 	"fmt"
-	"github.com/labstack/echo/v4"
+	"go-tech/internal/app/constant"
+	"go-tech/internal/app/dto"
+	"go-tech/internal/app/util"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 func (m *CustomMiddleware) AuditTrailMiddleware(next echo.HandlerFunc) echo.HandlerFunc {

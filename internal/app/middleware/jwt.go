@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"emoney-backoffice/internal/app/constant"
-	"emoney-backoffice/internal/app/dto"
-	"emoney-backoffice/internal/app/util"
+	"go-tech/internal/app/constant"
+	"go-tech/internal/app/dto"
+	"go-tech/internal/app/util"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -23,7 +23,7 @@ func (m *CustomMiddleware) JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc
 		}
 
 		actx := util.NewEmptyAppContext(c)
-		actx.SetAdminID(uint64(adminID))
+		actx.SetAdminID(uint(adminID))
 		accessUUID := mapClaims[constant.AccessUUIDContextKey].(string)
 		actx.SetAccessUUID(accessUUID)
 		return next(actx)

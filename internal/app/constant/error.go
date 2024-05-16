@@ -18,4 +18,5 @@ const (
 	ErrFailedUpdateData       = "Failed to update data"
 	ErrFailedDeleteData       = "Failed to delete data"
 	ErrInvalidToken           = "Invalid or expired Token"
+	ErrIconURL                = ""
 )

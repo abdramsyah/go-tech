@@ -30,5 +30,5 @@ func LowerAndTrimSpace(input string) string {
 }
 
 func CacheKeyFormatter(key string) string {
-	return fmt.Sprintf("emoney-backoffice-%s", key)
+	return fmt.Sprintf("go-tech-%s", key)
 }

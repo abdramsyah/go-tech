@@ -1,15 +1,16 @@
 package util
 
 import (
-	"emoney-backoffice/internal/app/constant"
 	"errors"
+	"go-tech/internal/app/constant"
+
 	"github.com/labstack/echo/v4"
 	"github.com/twinj/uuid"
 )
 
 type AppContext struct {
 	echo.Context
-	adminID    *uint64
+	adminID    *uint
 	accessUUID *string
 }
 
@@ -21,7 +22,7 @@ func (c *AppContext) GetRequestID() string {
 	return requestID
 }
 
-func (c *AppContext) SetAdminID(adminID uint64) {
+func (c *AppContext) SetAdminID(adminID uint) {
 	c.adminID = &adminID
 }
 
@@ -29,7 +30,7 @@ func (c *AppContext) SetAccessUUID(accessUUID string) {
 	c.accessUUID = &accessUUID
 }
 
-func (c *AppContext) GetAdminID() uint64 {
+func (c *AppContext) GetAdminID() uint {
 	return *c.adminID
 }
 

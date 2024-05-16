@@ -1,28 +1,33 @@
 package service
 
 import (
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/constant"
-	"emoney-backoffice/internal/app/dto"
-	"emoney-backoffice/internal/app/model"
-	"emoney-backoffice/internal/app/util"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/constant"
+	"go-tech/internal/app/dto"
+	"go-tech/internal/app/model"
+	"go-tech/internal/app/pkg/email"
+	"go-tech/internal/app/util"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/guregu/null"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cast"
 	"github.com/twinj/uuid"
 	"go.uber.org/zap"
-	"net/http"
-	"strconv"
-	"time"
+	"gorm.io/gorm"
 )
 
 type IAuthService interface {
+	Register(ctx echo.Context, req *dto.RegisterRequest) (err error)
 	Login(ctx echo.Context, req *dto.LoginRequest) (httpStatus int, jwtToken dto.JwtToken, err error)
-	Logout(ctx echo.Context, adminID uint64, accessUUID string) (httpStatus int, err error)
+	Logout(ctx echo.Context, adminID uint, accessUUID string) (httpStatus int, err error)
 	RefreshToken(ctx echo.Context, refreshToken string) (httpStatus int, jwtToken dto.JwtToken, err error)
 	ValidateToken(ctx echo.Context, r *http.Request) (claims jwt.MapClaims, err error)
 	PermissionCheck(ctx echo.Context, object string, action string) (isPermitted bool, err error)
@@ -94,6 +99,120 @@ func (s *authService) storeToRedis(uuid string, adminID uint64, duration time.Du
 	return
 }
 
+func (s *authService) Register(ctx echo.Context, req *dto.RegisterRequest) (err error) {
+	// actx, err := util.NewAppContext(ctx)
+	if err != nil {
+		return
+	}
+
+	_, err = s.opt.Repository.User.FindByNIK(req.NIK)
+	fmt.Println(">>> TEST <<< 2.113", err)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		fmt.Println(">>> TEST <<< 2.113")
+		// s.opt.Logger.With(zap.String("RequestID", util.GetRequestID(actx))).Warn("Error get user",
+		s.opt.Logger.With(zap.String("RequestID", "1")).Warn("Error get user",
+			zap.String("NIK", req.NIK),
+			zap.Error(err))
+		err = util.ErrInternalServerError()
+		return
+	}
+
+	if err == nil {
+		err = util.ErrRequestValidation("NIK sudah digunakan oleh pengguna lain")
+		return
+	}
+
+	user := &model.User{
+		NIK:         req.NIK,
+		FullName:    req.FullName,
+		LegalName:   req.LegalName,
+		BirthPlace:  req.BirthPlace,
+		BirthDate:   req.BirthDate,
+		Salary:      req.Salary,
+		KTPPhoto:    req.KTPPhoto,
+		SelfiePhoto: req.SelfiePhoto,
+		Email:       req.Email,
+		Status:      "active",
+		RoleID:      req.RoleID,
+	}
+
+	tx := s.opt.DB.Begin()
+	err = s.createUser(user, tx)
+	if err != nil {
+		s.opt.Logger.With(zap.String("RequestID", "1")).Error("Error create user",
+			zap.Error(err),
+		)
+		err = util.ErrInternalServerError()
+		return
+	}
+	tx.Commit()
+	return
+}
+
+func (s *authService) createUser(user *model.User, tx *gorm.DB) (err error) {
+	password := user.PasswordHash
+	passwordHash, err := util.HashPassword(password)
+	if err != nil {
+		s.opt.Logger.With(zap.String("RequestID", "1")).Error("Error create password",
+			zap.Error(err),
+		)
+		err = util.ErrUnknownError("Gagal untuk melakukan encrypt password")
+		return
+	}
+
+	user.PasswordHash = passwordHash
+	err = s.opt.Repository.User.Create(user, tx)
+	if err != nil {
+		s.opt.Logger.With(zap.String("RequestID", "1")).Error("Error create user",
+			zap.Error(err),
+		)
+		err = util.ErrUnknownError("Gagal untuk menambahkan pengguna")
+		return
+	}
+
+	_, err = s.opt.Options.Rbac.AddRoleForUser(util.FormatRbacSubject(user.ID), util.FormatRbacRole(user.RoleID))
+	if err != nil {
+		s.opt.Logger.With(zap.String("RequestID", "1")).Error("Failed to set role",
+			zap.Error(err),
+		)
+		err = util.ErrUnknownError("Gagal untuk set role")
+		tx.Rollback()
+		return
+	}
+
+	var (
+		replacer        []string
+		placeholderName = map[string]interface{}{
+			"fullname":  user.FullName,
+			"username":  user.FullName,
+			"password":  password,
+			"login_url": s.opt.Config.LoginURL,
+		}
+	)
+	for k, p := range placeholderName {
+		replacer = append(replacer, fmt.Sprintf("[%s]", k))
+		replacer = append(replacer, cast.ToString(p))
+	}
+	r := strings.NewReplacer(replacer...)
+	emailMessage := constant.EmailUserCreated
+	emailMessage = r.Replace(emailMessage)
+	err = s.opt.EMailService.Send(email.EmailRequest{
+		EmailTo: []string{user.Email},
+		Subject: "User Credential",
+		Message: emailMessage,
+	})
+	if err != nil {
+		s.opt.Logger.With(zap.String("RequestID", "1")).Error("Failed to send user credential",
+			zap.Error(err),
+		)
+		err = util.ErrUnknownError("Gagal mengirimkan kredensial pengguna")
+		tx.Rollback()
+		return
+	}
+
+	return
+}
+
 func (s *authService) Login(ctx echo.Context, req *dto.LoginRequest) (httpStatus int, jwtToken dto.JwtToken, err error) {
 	admin, err := s.opt.Repository.Admin.FindByEmail(req.Email)
 	if err != nil {
@@ -160,13 +279,13 @@ func (s *authService) Login(ctx echo.Context, req *dto.LoginRequest) (httpStatus
 	return
 }
 
-func (s *authService) Logout(ctx echo.Context, adminID uint64, accessUUID string) (httpStatus int, err error) {
+func (s *authService) Logout(ctx echo.Context, adminID uint, accessUUID string) (httpStatus int, err error) {
 	refreshUuid := fmt.Sprintf("%s++%d", accessUUID, adminID)
 	// delete access token
 	err = s.opt.Cache.DeleteCache(fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), accessUUID))
 	if err != nil {
 		s.opt.Logger.Warn(constant.ErrLogoutDefault,
-			zap.Uint64("Admin ID", adminID),
+			zap.Uint("Admin ID", adminID),
 			zap.Error(err))
 		httpStatus = http.StatusUnprocessableEntity
 		err = errors.New(constant.ErrLogoutDefault)
@@ -176,7 +295,7 @@ func (s *authService) Logout(ctx echo.Context, adminID uint64, accessUUID string
 	err = s.opt.Cache.DeleteCache(fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), refreshUuid))
 	if err != nil {
 		s.opt.Logger.Warn(constant.ErrLogoutDefault,
-			zap.Uint64("Admin ID", adminID),
+			zap.Uint("Admin ID", adminID),
 			zap.Error(err))
 		httpStatus = http.StatusUnprocessableEntity
 		err = errors.New(constant.ErrLogoutDefault)
@@ -353,8 +472,8 @@ func (s *authService) BatchPermissionCheck(ctx echo.Context, request [][]interfa
 	if err != nil {
 		return
 	}
-	adminID := actx.GetAdminID()
-	subject := util.FormatRbacSubject(adminID)
+	userID := actx.GetAdminID()
+	subject := util.FormatRbacSubject(userID)
 	permissions := [][]interface{}{}
 	for _, req := range request {
 		permissions = append(permissions, util.PrependArray(req, subject))

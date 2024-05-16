@@ -1,7 +1,7 @@
 package main
 
 import (
-	"emoney-backoffice/cmd"
+	"go-tech/cmd"
 	"log"
 	"time"
 )

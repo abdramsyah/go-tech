@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/service"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/service"
 )
 
 // HandlerOption option for handler, including all service

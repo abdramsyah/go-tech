@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"emoney-backoffice/internal/app/commons"
+	"go-tech/internal/app/commons"
 )
 
 // Option anything any repo object needed
@@ -12,5 +12,6 @@ type Option struct {
 // Repository all repo object injected here
 type Repository struct {
 	Admin      IAdminRepository
+	User       IUserRepository
 	AuditTrail IAuditTrailRepository
 }

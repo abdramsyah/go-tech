@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"emoney-backoffice/internal/app/constant"
-	"emoney-backoffice/internal/app/dto"
+	"go-tech/internal/app/constant"
+	"go-tech/internal/app/dto"
+
 	"github.com/labstack/echo/v4"
 )
 

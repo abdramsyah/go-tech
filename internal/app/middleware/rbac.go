@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"emoney-backoffice/internal/app/constant"
-	"emoney-backoffice/internal/app/dto"
-	"github.com/labstack/echo/v4"
+	"go-tech/internal/app/constant"
+	"go-tech/internal/app/dto"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 func (m *CustomMiddleware) RBACMiddleware(object string, action string) echo.MiddlewareFunc {

@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/service"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/service"
+
 	"go.uber.org/zap"
 )
 

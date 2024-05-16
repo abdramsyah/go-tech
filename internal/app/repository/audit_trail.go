@@ -1,11 +1,12 @@
 package repository
 
 import (
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/constant"
-	"emoney-backoffice/internal/app/dto"
-	"emoney-backoffice/internal/app/model"
-	"emoney-backoffice/internal/app/util"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/constant"
+	"go-tech/internal/app/dto"
+	"go-tech/internal/app/model"
+	"go-tech/internal/app/util"
+
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )

@@ -1,8 +1,8 @@
 package commons
 
 import (
-	"emoney-backoffice/config"
-	"emoney-backoffice/internal/app/appcontext"
+	"go-tech/config"
+	"go-tech/internal/app/appcontext"
 	"github.com/casbin/casbin/v2"
 	"github.com/gomodule/redigo/redis"
 	"go.uber.org/zap"

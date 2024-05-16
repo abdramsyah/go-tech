@@ -1,8 +1,9 @@
 package router
 
 import (
-	"emoney-backoffice/internal/app/handler"
-	"emoney-backoffice/internal/app/middleware"
+	"go-tech/internal/app/handler"
+	"go-tech/internal/app/middleware"
+
 	"github.com/labstack/echo/v4"
 )
 
@@ -22,6 +23,7 @@ func newAuth(server *echo.Echo, handlers handler.Handlers, middleware *middlewar
 
 func (h *auth) initialize() {
 	g := h.server.Group("/auth")
+	g.POST("/register", middleware.HandlerWrapperJson(h.handlers.Auth.Register))
 	g.POST("/login", middleware.HandlerWrapperJson(h.handlers.Auth.Login))
 	g.POST("/refresh", middleware.HandlerWrapperJson(h.handlers.Auth.RefreshToken))
 	g.Use(h.middleware.JWTMiddleware)

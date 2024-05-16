@@ -1,19 +1,20 @@
 package service
 
 import (
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/constant"
-	"emoney-backoffice/internal/app/dto"
-	"emoney-backoffice/internal/app/model"
-	"emoney-backoffice/internal/app/util"
 	"errors"
-	"github.com/guregu/null"
-	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/constant"
+	"go-tech/internal/app/dto"
+	"go-tech/internal/app/model"
+	"go-tech/internal/app/util"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/guregu/null"
+	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
 type IAuditTrailService interface {
@@ -64,7 +65,7 @@ func (s *auditTrailService) Create(ctx echo.Context, req *dto.AuditTrailRequest)
 func (s *auditTrailService) FindRoutes(ctx echo.Context) (routes []dto.BORoutesResponse) {
 	allRoutes := ctx.Echo().Routes()
 	for _, r := range allRoutes {
-		if strings.Contains(r.Name, "github.com/") || strings.Contains(r.Path, "/mobile/") || strings.Contains(r.Path, "emoney-backoffice/") {
+		if strings.Contains(r.Name, "github.com/") || strings.Contains(r.Path, "/mobile/") || strings.Contains(r.Path, "go-tech/") {
 			continue
 		}
 		routes = append(routes, dto.BORoutesResponse{

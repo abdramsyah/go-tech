@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"emoney-backoffice/internal/app/dto"
 	"fmt"
-	"github.com/labstack/echo/v4"
+	"go-tech/internal/app/dto"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 type HandlerJson func(ctx echo.Context) (status int, resp dto.HttpResponse)

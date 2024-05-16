@@ -2,8 +2,8 @@ package model
 
 import (
 	"database/sql"
-	"emoney-backoffice/internal/app/constant"
 	"errors"
+	"go-tech/internal/app/constant"
 
 	"gorm.io/gorm"
 )

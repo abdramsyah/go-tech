@@ -2,21 +2,22 @@ package server
 
 import (
 	"context"
-	"emoney-backoffice/internal/app/commons"
-	"emoney-backoffice/internal/app/handler"
-	cmiddleware "emoney-backoffice/internal/app/middleware"
-	"emoney-backoffice/internal/app/router"
-	"emoney-backoffice/internal/app/service"
 	"fmt"
+	"go-tech/internal/app/commons"
+	"go-tech/internal/app/handler"
+	cmiddleware "go-tech/internal/app/middleware"
+	"go-tech/internal/app/router"
+	"go-tech/internal/app/service"
+	"os"
+	"os/signal"
+	"strings"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cast"
 	"github.com/ucarion/urlpath"
 	"go.uber.org/zap"
-	"os"
-	"os/signal"
-	"strings"
-	"time"
 )
 
 // IServer interface for server
