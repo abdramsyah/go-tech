@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"flag"
+	"fmt"
 	"go-tech/config"
 	"go-tech/internal/app/appcontext"
 	"go-tech/internal/app/commons"
 	"go-tech/internal/app/constant"
-	"flag"
-	"fmt"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -16,7 +17,7 @@ import (
 
 var migrateUpCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "Migrate Up DB Emoney Backoffice",
+	Short: "Migrate Up DB",
 	Long:  `Please you know what are you doing by using this command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.Config()
@@ -36,7 +37,7 @@ var migrateUpCmd = &cobra.Command{
 
 var migrateDownCmd = &cobra.Command{
 	Use:   "migratedown",
-	Short: "Migrate Up DB Emoney Backoffice",
+	Short: "Migrate Up DB",
 	Long:  `Please you know what are you doing by using this command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg := config.Config()

@@ -4,15 +4,15 @@ import "time"
 
 type AuditTrailRequest struct {
 	RouteName string
-	AdminID   uint
+	UserID    uint
 	URL       string
 }
 
 type AuditTrailFilter struct {
-	AdminEmail *string
-	Action     *string
-	StartDate  *time.Time
-	EndDate    *time.Time
+	UserEmail *string
+	Action    *string
+	StartDate *time.Time
+	EndDate   *time.Time
 }
 
 type BORoutesResponse struct {
@@ -22,13 +22,13 @@ type BORoutesResponse struct {
 }
 
 type AuditTrailResponse struct {
-	ID         int64  `json:"id"`
-	AdminID    int64  `json:"admin_id"`
-	AdminEmail string `json:"admin_email"`
-	AdminName  string `json:"admin_name"`
-	AdminRole  string `json:"admin_role"`
-	Action     string `json:"action"`
-	URL        string `json:"url"`
-	CreatedAt  string `json:"created_at"`
-	RequestID  string `json:"request_id"`
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
+	UserEmail string `json:"user_email"`
+	UserName  string `json:"user_name"`
+	UserRole  string `json:"user_role"`
+	Action    string `json:"action"`
+	URL       string `json:"url"`
+	CreatedAt string `json:"created_at"`
+	RequestID string `json:"request_id"`
 }

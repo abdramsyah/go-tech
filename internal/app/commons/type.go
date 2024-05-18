@@ -15,5 +15,14 @@ type TokenDetails struct {
 }
 
 type AuthCacheValue struct {
-	AdminID uint64 `json:"admin_id"`
+	UserID uint `json:"user_id"`
+}
+
+type AuthUUIDCacheValue struct {
+	UUID string `json:"uuid"`
+}
+
+type PaginateResponse struct {
+	List  interface{} `json:"list"`
+	Count int64       `json:"count"`
 }

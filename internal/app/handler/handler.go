@@ -14,4 +14,5 @@ type HandlerOption struct {
 type Handlers struct {
 	Health HealthHandler
 	Auth   AuthHandler
+	User UserHandler
 }

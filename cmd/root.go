@@ -1,18 +1,20 @@
 package cmd
 
 import (
+	"fmt"
 	"go-tech/config"
 	"go-tech/internal/app/appcontext"
 	"go-tech/internal/app/commons"
+	"go-tech/internal/app/pkg/email"
 	"go-tech/internal/app/repository"
 	"go-tech/internal/app/server"
 	"go-tech/internal/app/service"
 	"go-tech/pkg/cache"
-	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 var levelMapper = map[string]zapcore.Level{
@@ -85,7 +87,7 @@ func initRepository(repoOption repository.Option) *repository.Repository {
 	repositories := repository.Repository{
 		Admin:      admin,
 		AuditTrail: auditTrail,
-		User: user,
+		User:       user,
 	}
 	return &repositories
 }
@@ -94,12 +96,12 @@ func initService(serviceOption service.Option) *service.Services {
 	health := service.NewHealthService(serviceOption)
 	auth := service.NewAuthService(serviceOption)
 	auditTrail := service.NewAuditTrailService(serviceOption)
-	// user := service.NewAuditTrailService(serviceOption)
+	user := service.NewUserService(serviceOption)
 	services := service.Services{
 		Health:     health,
 		Auth:       auth,
 		AuditTrail: auditTrail,
-		// User: user,
+		User:       user,
 	}
 	return &services
 }
@@ -130,10 +132,13 @@ func start() {
 	})
 
 	cachePkg := cache.NewCache(opt.CachePool)
+	emailSvcPkg := email.NewEmailService(&opt.Config)
+
 	services := initService(service.Option{
-		Options:    *opt,
-		Repository: repos,
-		Cache:      cachePkg,
+		Options:      *opt,
+		Repository:   repos,
+		Cache:        cachePkg,
+		EMailService: emailSvcPkg,
 	})
 
 	srv := server.NewServer(*opt, services)

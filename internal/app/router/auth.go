@@ -22,7 +22,7 @@ func newAuth(server *echo.Echo, handlers handler.Handlers, middleware *middlewar
 }
 
 func (h *auth) initialize() {
-	g := h.server.Group("/auth")
+	g := h.server.Group("/api/v1/auth")
 	g.POST("/register", middleware.HandlerWrapperJson(h.handlers.Auth.Register))
 	g.POST("/login", middleware.HandlerWrapperJson(h.handlers.Auth.Login))
 	g.POST("/refresh", middleware.HandlerWrapperJson(h.handlers.Auth.RefreshToken))

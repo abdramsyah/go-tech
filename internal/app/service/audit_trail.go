@@ -34,23 +34,23 @@ func NewAuditTrailService(opt Option) IAuditTrailService {
 }
 
 func (s *auditTrailService) Create(ctx echo.Context, req *dto.AuditTrailRequest) (err error) {
-	admin, err := s.opt.Repository.Admin.FindById(uint64(req.AdminID))
+	user, err := s.opt.Repository.User.FindByID(ctx, req.UserID)
 	if err != nil {
-		s.opt.Logger.With(zap.String("RequestID", util.GetRequestID(ctx))).Error("Error get admin by ID",
+		s.opt.Logger.With(zap.String("RequestID", util.GetRequestID(ctx))).Error("Error get user by ID",
 			zap.Error(err),
 		)
 		return
 	}
 
 	data := model.AuditTrails{
-		AdminID:    int64(req.AdminID),
-		AdminEmail: admin.Email,
-		AdminName:  admin.FullName,
-		AdminRole:  admin.Role.Name,
-		Action:     req.RouteName,
-		URL:        req.URL,
-		CreatedAt:  time.Now(),
-		RequestID:  null.NewString(util.GetRequestID(ctx), true),
+		UserID:    req.UserID,
+		UserEmail: user.Email,
+		UserName:  user.FullName,
+		UserRole:  user.Role.Name,
+		Action:    req.RouteName,
+		URL:       req.URL,
+		CreatedAt: time.Now(),
+		RequestID: null.NewString(util.GetRequestID(ctx), true),
 	}
 
 	err = s.opt.Repository.AuditTrail.Create(ctx, &data)

@@ -26,10 +26,10 @@ import (
 
 type IAuthService interface {
 	Register(ctx echo.Context, req *dto.RegisterRequest) (err error)
-	Login(ctx echo.Context, req *dto.LoginRequest) (httpStatus int, jwtToken dto.JwtToken, err error)
-	Logout(ctx echo.Context, adminID uint, accessUUID string) (httpStatus int, err error)
-	RefreshToken(ctx echo.Context, refreshToken string) (httpStatus int, jwtToken dto.JwtToken, err error)
-	ValidateToken(ctx echo.Context, r *http.Request) (claims jwt.MapClaims, err error)
+	Login(ctx echo.Context, req *dto.LoginRequest) (jwtToken dto.JwtToken, err error)
+	Logout(ctx echo.Context, userID uint, accessUUID string) (err error)
+	RefreshToken(ctx echo.Context, refreshToken string) (jwtToken dto.JwtToken, err error)
+	ValidateToken(ctx echo.Context, r *http.Request) (result dto.TokenValidationResult, err error)
 	PermissionCheck(ctx echo.Context, object string, action string) (isPermitted bool, err error)
 	BatchPermissionCheck(ctx echo.Context, request [][]interface{}) (isPermitted bool, err error)
 }
@@ -44,7 +44,7 @@ func NewAuthService(opt Option) IAuthService {
 	}
 }
 
-func (s *authService) createJwtToken(adminID uint64) (td *commons.TokenDetails, err error) {
+func (s *authService) createJwtToken(userID uint, roleType string) (td *commons.TokenDetails, err error) {
 	td = &commons.TokenDetails{}
 	accessExpired := cast.ToDuration(s.opt.Config.JwtAccessTtl)
 	refreshExpired := cast.ToDuration(s.opt.Config.JwtRefreshTtl)
@@ -52,20 +52,21 @@ func (s *authService) createJwtToken(adminID uint64) (td *commons.TokenDetails, 
 	td.AccessUuid = uuid.NewV4().String()
 
 	td.RtExpires = time.Now().Add(refreshExpired).Unix()
-	td.RefreshUuid = td.AccessUuid + "++" + strconv.Itoa(int(adminID))
+	td.RefreshUuid = td.AccessUuid + "++" + strconv.Itoa(int(userID))
 
 	accessSecret := s.opt.Config.JwtAccessSecret
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
 	atClaims["access_uuid"] = td.AccessUuid
-	atClaims["admin_id"] = adminID
+	atClaims["user_id"] = userID
+	atClaims["role_type"] = roleType
 	atClaims["exp"] = td.AtExpires
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	td.AccessToken, err = at.SignedString([]byte(accessSecret))
 	if err != nil {
 		return
 	}
-	err = s.storeToRedis(td.AccessUuid, adminID, accessExpired)
+	err = s.storeToRedis(constant.TokenAccessType, td.AccessUuid, userID, accessExpired)
 	if err != nil {
 		return
 	}
@@ -73,7 +74,8 @@ func (s *authService) createJwtToken(adminID uint64) (td *commons.TokenDetails, 
 	refreshSecret := s.opt.Config.JwtRefreshSecret
 	rtClaims := jwt.MapClaims{}
 	rtClaims["refresh_uuid"] = td.RefreshUuid
-	rtClaims["admin_id"] = adminID
+	rtClaims["user_id"] = userID
+	rtClaims["role_type"] = roleType
 	rtClaims["exp"] = td.RtExpires
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
 	td.RefreshToken, err = rt.SignedString([]byte(refreshSecret))
@@ -81,59 +83,73 @@ func (s *authService) createJwtToken(adminID uint64) (td *commons.TokenDetails, 
 		return
 	}
 
-	err = s.storeToRedis(td.RefreshUuid, adminID, refreshExpired)
+	err = s.storeToRedis(constant.TokenRefreshType, td.RefreshUuid, userID, refreshExpired)
 
 	return
 }
 
-func (s *authService) storeToRedis(uuid string, adminID uint64, duration time.Duration) (err error) {
+func (s *authService) storeToRedis(tokenType string, uuid string, userID uint, duration time.Duration) (err error) {
 	val := commons.AuthCacheValue{
-		AdminID: adminID,
+		UserID: userID,
 	}
 	b, err := json.Marshal(val)
 	if err != nil {
-		s.opt.Logger.Error("Failed to marshal data", zap.Error(err))
+		s.opt.Logger.Error("failed to marshal data", zap.Error(err))
 		return
 	}
 	err = s.opt.Cache.WriteCache(fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), uuid), b, duration)
+	if err != nil {
+		s.opt.Logger.Error("failed to marshal data", zap.Error(err))
+		return
+	}
+	valUUID := commons.AuthUUIDCacheValue{
+		UUID: uuid,
+	}
+	b, err = json.Marshal(valUUID)
+	if err != nil {
+		s.opt.Logger.Error("failed to marshal data", zap.Error(err))
+		return
+	}
+	err = s.opt.Cache.WriteCache(fmt.Sprintf("%s:%s:%d", util.CacheKeyFormatter("uuid"), tokenType, userID), b, duration)
+	if err != nil {
+		s.opt.Logger.Error("failed to marshal data", zap.Error(err))
+		return
+	}
 	return
 }
-
 func (s *authService) Register(ctx echo.Context, req *dto.RegisterRequest) (err error) {
 	// actx, err := util.NewAppContext(ctx)
 	if err != nil {
 		return
 	}
 
-	_, err = s.opt.Repository.User.FindByNIK(req.NIK)
-	fmt.Println(">>> TEST <<< 2.113", err)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		fmt.Println(">>> TEST <<< 2.113")
-		// s.opt.Logger.With(zap.String("RequestID", util.GetRequestID(actx))).Warn("Error get user",
-		s.opt.Logger.With(zap.String("RequestID", "1")).Warn("Error get user",
-			zap.String("NIK", req.NIK),
-			zap.Error(err))
-		err = util.ErrInternalServerError()
-		return
-	}
+	// _, err = s.opt.Repository.User.FindByNIK(req.NIK)
+	// if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	// 	// s.opt.Logger.With(zap.String("RequestID", util.GetRequestID(actx))).Warn("Error get user",
+	// 	s.opt.Logger.With(zap.String("RequestID", "1")).Warn("Error get user",
+	// 		zap.String("NIK", req.NIK),
+	// 		zap.Error(err))
+	// 	err = util.ErrInternalServerError()
+	// 	return
+	// }
 
-	if err == nil {
-		err = util.ErrRequestValidation("NIK sudah digunakan oleh pengguna lain")
-		return
-	}
-
+	// if err == nil {
+	// 	err = util.ErrRequestValidation("NIK sudah digunakan oleh pengguna lain")
+	// 	return
+	// }
 	user := &model.User{
-		NIK:         req.NIK,
-		FullName:    req.FullName,
-		LegalName:   req.LegalName,
-		BirthPlace:  req.BirthPlace,
-		BirthDate:   req.BirthDate,
-		Salary:      req.Salary,
-		KTPPhoto:    req.KTPPhoto,
-		SelfiePhoto: req.SelfiePhoto,
-		Email:       req.Email,
-		Status:      "active",
-		RoleID:      req.RoleID,
+		// NIK:         req.NIK,
+		FullName:  req.FullName,
+		LegalName: req.LegalName,
+		// BirthPlace: req.BirthPlace,
+		// BirthDate:   req.BirthDate,
+		// Salary:      req.Salary,
+		// KTPPhoto:    req.KTPPhoto,
+		// SelfiePhoto: req.SelfiePhoto,
+		Email:        req.Email,
+		Status:       "active",
+		RoleID:       1,
+		PasswordHash: req.Password,
 	}
 
 	tx := s.opt.DB.Begin()
@@ -145,6 +161,7 @@ func (s *authService) Register(ctx echo.Context, req *dto.RegisterRequest) (err 
 		err = util.ErrInternalServerError()
 		return
 	}
+
 	tx.Commit()
 	return
 }
@@ -189,6 +206,7 @@ func (s *authService) createUser(user *model.User, tx *gorm.DB) (err error) {
 			"login_url": s.opt.Config.LoginURL,
 		}
 	)
+
 	for k, p := range placeholderName {
 		replacer = append(replacer, fmt.Sprintf("[%s]", k))
 		replacer = append(replacer, cast.ToString(p))
@@ -201,6 +219,7 @@ func (s *authService) createUser(user *model.User, tx *gorm.DB) (err error) {
 		Subject: "User Credential",
 		Message: emailMessage,
 	})
+
 	if err != nil {
 		s.opt.Logger.With(zap.String("RequestID", "1")).Error("Failed to send user credential",
 			zap.Error(err),
@@ -213,49 +232,54 @@ func (s *authService) createUser(user *model.User, tx *gorm.DB) (err error) {
 	return
 }
 
-func (s *authService) Login(ctx echo.Context, req *dto.LoginRequest) (httpStatus int, jwtToken dto.JwtToken, err error) {
-	admin, err := s.opt.Repository.Admin.FindByEmail(req.Email)
+func (s *authService) Login(ctx echo.Context, req *dto.LoginRequest) (jwtToken dto.JwtToken, err error) {
+	user, err := s.opt.Repository.User.FindByEmail(ctx, req.Email)
 	if err != nil {
-		s.opt.Logger.Warn(constant.ErrLoginDefault,
+		s.opt.Logger.Warn(util.ErrLoginDefault().Error(),
 			zap.String("Email", req.Email),
 			zap.Error(err))
-		httpStatus = http.StatusNotFound
-		err = errors.New(constant.ErrLoginDefault)
+		err = util.ErrLoginDefault()
 		return
 	}
 
-	if admin.Status != constant.AdminStatusActive {
-		httpStatus = http.StatusUnauthorized
-		err = errors.New("Admin status inactive")
+	if user.Status != constant.UserStatusActive {
+		s.opt.Logger.Warn(util.ErrLoginDefault().Error(),
+			zap.String("username", req.Email),
+			zap.Error(errors.New("user status inactive")))
+		err = util.ErrLoginDefault()
 		return
 	}
 
-	check := util.CheckPasswordHash(req.Password, admin.PasswordHash)
+	check := util.CheckPasswordHash(req.Password, user.PasswordHash)
 	if !check {
-		httpStatus = http.StatusUnauthorized
-		err = errors.New(constant.ErrLoginDefault)
+		err = util.ErrLoginDefault()
 		return
 	}
 
-	tokenDetail, err := s.createJwtToken(uint64(admin.ID))
+	//auto logout old session
+	err = s.autoLogout(user.ID)
+	if err != nil {
+		return
+	}
+
+	tokenDetail, err := s.createJwtToken(user.ID, user.Role.RoleType)
 	if err != nil {
 		s.opt.Logger.Error("Failed to generate access token",
 			zap.String("Email", req.Email),
 			zap.Error(err))
-		httpStatus = http.StatusInternalServerError
-		err = errors.New("Failed to generate access token")
+		err = util.ErrUnknownError("Gagal generate access token")
 		return
 	}
 
 	auditTrail := model.AuditTrails{
-		AdminID:    int64(admin.ID),
-		AdminEmail: admin.Email,
-		AdminName:  admin.FullName,
-		AdminRole:  admin.Role.Name,
-		Action:     "Login",
-		URL:        "[POST] /login",
-		CreatedAt:  time.Now(),
-		RequestID:  null.NewString(util.GetRequestID(ctx), true),
+		UserID:    user.ID,
+		UserEmail: user.Email,
+		UserName:  user.FullName,
+		UserRole:  user.Role.Name,
+		Action:    "Login",
+		URL:       "[POST] /login",
+		CreatedAt: time.Now(),
+		RequestID: null.NewString(util.GetRequestID(ctx), true),
 	}
 
 	err = s.opt.Repository.AuditTrail.Create(ctx, &auditTrail)
@@ -263,12 +287,10 @@ func (s *authService) Login(ctx echo.Context, req *dto.LoginRequest) (httpStatus
 		s.opt.Logger.With(zap.String("RequestID", util.GetRequestID(ctx))).Error("Failed to save audit trail",
 			zap.String("Email", req.Email),
 			zap.Error(err))
-		httpStatus = http.StatusInternalServerError
-		err = errors.New("Failed to generate access token")
+		err = util.ErrUnknownError("Gagal generate access token")
 		return
 	}
 
-	httpStatus = http.StatusOK
 	jwtToken = dto.JwtToken{
 		AccessToken:         tokenDetail.AccessToken,
 		AccessTokenExpires:  tokenDetail.AtExpires,
@@ -279,30 +301,27 @@ func (s *authService) Login(ctx echo.Context, req *dto.LoginRequest) (httpStatus
 	return
 }
 
-func (s *authService) Logout(ctx echo.Context, adminID uint, accessUUID string) (httpStatus int, err error) {
-	refreshUuid := fmt.Sprintf("%s++%d", accessUUID, adminID)
+func (s *authService) Logout(ctx echo.Context, userID uint, accessUUID string) (err error) {
+	refreshUuid := fmt.Sprintf("%s++%d", accessUUID, userID)
 	// delete access token
 	err = s.opt.Cache.DeleteCache(fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), accessUUID))
 	if err != nil {
-		s.opt.Logger.Warn(constant.ErrLogoutDefault,
-			zap.Uint("Admin ID", adminID),
+		s.opt.Logger.Warn(util.ErrLogoutDefault().Error(),
+			zap.Uint("User ID", userID),
 			zap.Error(err))
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New(constant.ErrLogoutDefault)
+		err = util.ErrLogoutDefault()
 		return
 	}
 	// delete refresh token
 	err = s.opt.Cache.DeleteCache(fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), refreshUuid))
 	if err != nil {
-		s.opt.Logger.Warn(constant.ErrLogoutDefault,
-			zap.Uint("Admin ID", adminID),
+		s.opt.Logger.Warn(util.ErrLogoutDefault().Error(),
+			zap.Uint("User ID", userID),
 			zap.Error(err))
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New(constant.ErrLogoutDefault)
+		err = util.ErrLogoutDefault()
 		return
 	}
 
-	httpStatus = http.StatusOK
 	return
 }
 
@@ -327,45 +346,47 @@ func (s *authService) verifyToken(tokenString string, tokenType string) (tokenSt
 	return
 }
 
-func (s *authService) RefreshToken(ctx echo.Context, refreshToken string) (httpStatus int, jwtToken dto.JwtToken, err error) {
+func (s *authService) RefreshToken(ctx echo.Context, refreshToken string) (jwtToken dto.JwtToken, err error) {
 	tokenStruct, err := s.verifyToken(refreshToken, constant.TokenRefreshType)
 	if err != nil {
 		s.opt.Logger.Error("Error Verify Token",
 			zap.Error(err),
 		)
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New("Invalid refresh token")
+		err = util.ErrUnknownError("Refresh token tidak valid")
 		return
 	}
 
 	claims, ok := tokenStruct.Claims.(jwt.MapClaims)
 	if !ok || !tokenStruct.Valid {
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New("Invalid refresh token")
+		err = util.ErrUnknownError("Refresh token tidak valid")
+		return
 	}
 
 	refreshUuid, ok := claims["refresh_uuid"].(string) //convert the interface to string
 	if !ok {
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New("Invalid refresh token claim")
+		err = util.ErrUnknownError("Klaim refresh token tidak valid")
 		return
 	}
 
-	adminID, errConv := strconv.ParseUint(fmt.Sprintf("%.f", claims["admin_id"]), 10, 64)
+	roleType, ok := claims["role_type"].(string) //convert the interface to string
+	if !ok {
+		err = util.ErrUnknownError("Tipe user tidak valid")
+		return
+	}
+
+	userID, errConv := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
 	if err != nil {
-		s.opt.Logger.Error("Invalid Admin ID",
+		s.opt.Logger.Error("ID pengguna tidak valid",
 			zap.Error(errConv),
 		)
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New("Invalid refresh token")
+		err = util.ErrUnknownError("Refresh token tidak valid")
 		return
 	}
 
 	cacheKey := fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), refreshUuid)
 	isRefreshTokenExist := s.opt.Cache.CheckCacheExists(cacheKey)
 	if !isRefreshTokenExist {
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New("You already logged out, please re login")
+		err = util.ErrUnknownError("Anda telah keluar, silahkan login kembali")
 		return
 	}
 
@@ -374,21 +395,18 @@ func (s *authService) RefreshToken(ctx echo.Context, refreshToken string) (httpS
 		s.opt.Logger.Error("Failed to delete refresh token",
 			zap.Error(err),
 		)
-		httpStatus = http.StatusUnprocessableEntity
-		err = errors.New("Failed to delete refresh token")
+		err = util.ErrUnknownError("Gagal menghapus refresh token")
 		return
 	}
 
-	tokenDetail, errCrt := s.createJwtToken(adminID)
+	tokenDetail, errCrt := s.createJwtToken(uint(userID), roleType)
 	if errCrt != nil {
 		s.opt.Logger.Error("Failed to generate refresh token",
 			zap.Error(errCrt))
-		httpStatus = http.StatusInternalServerError
-		err = errors.New("Failed to generate refresh token")
+		err = util.ErrUnknownError("Gagal generate refresh token")
 		return
 	}
 
-	httpStatus = http.StatusOK
 	jwtToken = dto.JwtToken{
 		AccessToken:         tokenDetail.AccessToken,
 		AccessTokenExpires:  tokenDetail.AtExpires,
@@ -398,12 +416,13 @@ func (s *authService) RefreshToken(ctx echo.Context, refreshToken string) (httpS
 	return
 }
 
-func (s *authService) ValidateToken(ctx echo.Context, r *http.Request) (claims jwt.MapClaims, err error) {
+func (s *authService) ValidateToken(ctx echo.Context, r *http.Request) (result dto.TokenValidationResult, err error) {
 	tokenString, err := util.ExtractBearerToken(r.Header)
 	if err != nil {
 		s.opt.Logger.Error("Error Extract Token",
 			zap.Error(err),
 		)
+		err = util.ErrUnauthorized()
 		return
 	}
 	tokenStruct, err := s.verifyToken(tokenString, constant.TokenAccessType)
@@ -411,43 +430,56 @@ func (s *authService) ValidateToken(ctx echo.Context, r *http.Request) (claims j
 		s.opt.Logger.Error("Error Verify Token",
 			zap.Error(err),
 		)
+		err = util.ErrUnauthorized()
 		return
 	}
 	claims, ok := tokenStruct.Claims.(jwt.MapClaims)
 	if !ok || !tokenStruct.Valid {
 		s.opt.Logger.Error("Token claims is not valid")
-		err = errors.New("Token claims is not valid")
+		err = util.ErrUnauthorized()
 		return
 	}
 
 	accessUuid, ok := claims["access_uuid"].(string)
 	if !ok {
 		s.opt.Logger.Error("Access UUID is not valid")
-		err = errors.New("Access UUID is not valid")
+		err = util.ErrUnauthorized()
 		return
 	}
-	adminID, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["admin_id"]), 10, 64)
+	roleType, ok := claims["role_type"].(string)
+	if !ok {
+		s.opt.Logger.Error("User type is not valid")
+		err = util.ErrUnauthorized()
+		return
+	}
+	userID, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
 	if err != nil {
-		s.opt.Logger.Error("Error Parse Admin ID From Token",
+		s.opt.Logger.Error("Error Parse User ID From Token",
 			zap.Error(err),
 		)
+		err = util.ErrUnauthorized()
 		return
 	}
 	cacheKey := fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), accessUuid)
 	authCache, err := s.opt.Cache.ReadCache(cacheKey)
 	if err != nil {
-		s.opt.Logger.Error("Error Get Admin ID From Cache",
+		s.opt.Logger.Error("Error Get User ID From Cache",
 			zap.Error(err),
 		)
+		err = util.ErrUnauthorized()
 		return
 	}
 	authCacheValue := new(commons.AuthCacheValue)
 	err = json.Unmarshal(authCache, authCacheValue)
-	if adminID != authCacheValue.AdminID {
-		s.opt.Logger.Error("Admin ID from token different with Admin ID from cache")
-		err = errors.New("Admin ID from token different with Admin ID from cache")
+	if userID != uint64(authCacheValue.UserID) {
+		s.opt.Logger.Error("User ID from token different with User ID from cache")
+		err = util.ErrUnauthorized()
 		return
 	}
+
+	result.UserID = uint(userID)
+	result.AccessUUID = accessUuid
+	result.RoleType = roleType
 	return
 }
 
@@ -456,8 +488,8 @@ func (s *authService) PermissionCheck(ctx echo.Context, object string, action st
 	if err != nil {
 		return
 	}
-	adminID := actx.GetAdminID()
-	subject := util.FormatRbacSubject(adminID)
+	userID := actx.GetUserID()
+	subject := util.FormatRbacSubject(userID)
 	isPermitted, err = s.opt.Options.Rbac.Enforce(subject, object, action)
 	if err != nil {
 		s.opt.Logger.With(zap.String("RequestID", util.GetRequestID(actx))).Error("Error Checking Policy",
@@ -472,7 +504,7 @@ func (s *authService) BatchPermissionCheck(ctx echo.Context, request [][]interfa
 	if err != nil {
 		return
 	}
-	userID := actx.GetAdminID()
+	userID := actx.GetUserID()
 	subject := util.FormatRbacSubject(userID)
 	permissions := [][]interface{}{}
 	for _, req := range request {
@@ -493,5 +525,79 @@ func (s *authService) BatchPermissionCheck(ctx echo.Context, request [][]interfa
 		}
 	}
 	err = errors.New("User don't has permission")
+	return
+}
+
+func (s *authService) autoLogout(userID uint) (err error) {
+	uuidAccessKey := fmt.Sprintf("%s:%s:%d", util.CacheKeyFormatter("uuid"), constant.TokenAccessType, userID)
+	uuidAccessCache, err := s.opt.Cache.ReadCache(uuidAccessKey)
+	if err != nil {
+		s.opt.Logger.Error("error get uuid access token from cache",
+			zap.Uint("user id", userID),
+			zap.Error(err),
+		)
+		if !strings.Contains(err.Error(), "Cache key didn't exists") {
+			err = util.ErrUnknownError("Gagal auto logout pengguna")
+			return
+		}
+		//if err is cache key didn't exists, ignore error
+		err = nil
+	} else {
+		uuidAccessCacheValue := new(commons.AuthUUIDCacheValue)
+		err = json.Unmarshal(uuidAccessCache, uuidAccessCacheValue)
+		if err != nil {
+			s.opt.Logger.Error("error unmarshal uuid access token from cache",
+				zap.Uint("user id", userID),
+				zap.Error(err),
+			)
+			err = util.ErrUnknownError("Gagal auto logout pengguna")
+			return
+		}
+		// delete access token
+		err = s.opt.Cache.DeleteCache(fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), uuidAccessCacheValue.UUID))
+		if err != nil {
+			s.opt.Logger.Error(util.ErrLogoutDefault().Error(),
+				zap.Uint("user id", userID),
+				zap.Error(err))
+			err = util.ErrUnknownError("Gagal auto logout pengguna")
+			return
+		}
+	}
+
+	uuidRefreshKey := fmt.Sprintf("%s:%s:%d", util.CacheKeyFormatter("uuid"), constant.TokenRefreshType, userID)
+	uuidRefreshCache, err := s.opt.Cache.ReadCache(uuidRefreshKey)
+	if err != nil {
+		s.opt.Logger.Error("error get uuid refresh token from cache",
+			zap.Error(err),
+		)
+		if !strings.Contains(err.Error(), "Cache key didn't exists") {
+			fmt.Sprintln(" MASUK SINI NIH ")
+			err = util.ErrUnknownError("Gagal auto logout pengguna")
+			return
+		}
+		//if err is cache key didn't exists, ignore error
+		err = nil
+	} else {
+		uuidRefreshCacheValue := new(commons.AuthUUIDCacheValue)
+		err = json.Unmarshal(uuidRefreshCache, uuidRefreshCacheValue)
+		if err != nil {
+			s.opt.Logger.Error("error unmarshal uuid refresh token from cache",
+				zap.Uint("user id", userID),
+				zap.Error(err),
+			)
+			err = util.ErrUnknownError("Gagal auto logout pengguna")
+			return
+		}
+
+		// delete refresh token
+		err = s.opt.Cache.DeleteCache(fmt.Sprintf("%s:%s", util.CacheKeyFormatter("jwt"), uuidRefreshCacheValue.UUID))
+		if err != nil {
+			s.opt.Logger.Error(util.ErrLogoutDefault().Error(),
+				zap.Uint("user id", userID),
+				zap.Error(err))
+			err = util.ErrUnknownError("Gagal auto logout pengguna")
+			return
+		}
+	}
 	return
 }

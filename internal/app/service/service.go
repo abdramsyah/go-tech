@@ -20,4 +20,5 @@ type Services struct {
 	Health     IHealthService
 	Auth       IAuthService
 	AuditTrail IAuditTrailService
+	User       IUserService
 }

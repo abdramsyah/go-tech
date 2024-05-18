@@ -2,8 +2,7 @@ package model
 
 import (
 	"database/sql"
-	"errors"
-	"go-tech/internal/app/constant"
+	"go-tech/internal/app/util"
 
 	"gorm.io/gorm"
 )
@@ -12,19 +11,20 @@ type Role struct {
 	gorm.Model
 	Name        string
 	Description sql.NullString
-	CreatedBy   uint64
-	UpdatedBy   uint64
+	RoleType    string
+	CreatedBy   uint
+	UpdatedBy   uint
 	DeletedBy   sql.NullInt64
-	Admins      []Admin
-	AdminCreate Admin `gorm:"foreignKey:ID;references:CreatedBy"`
-	AdminUpdate Admin `gorm:"foreignKey:ID;references:UpdatedBy"`
-	AdminDelete Admin `gorm:"foreignKey:ID;references:DeletedBy"`
+	Users       []User
+	UserCreate  User `gorm:"foreignKey:ID;references:CreatedBy"`
+	UserUpdate  User `gorm:"foreignKey:ID;references:UpdatedBy"`
+	UserDelete  User `gorm:"foreignKey:ID;references:DeletedBy"`
 }
 
 func (m *Role) BeforeDelete(tx *gorm.DB) (err error) {
-	result := tx.Where("role_id = ?", m.ID).Find(&Admin{})
+	result := tx.Where("role_id = ?", m.ID).Find(&User{})
 	if result.RowsAffected > 0 {
-		err = errors.New(constant.ErrDataRelatedToOtherData)
+		err = util.ErrDataRelatedToOtherData()
 	}
 	return
 }

@@ -57,9 +57,14 @@ func initHandler(opt commons.Options, services *service.Services) (handlers hand
 		HandlerOption: hOpt,
 	}
 
+	userHandler := handler.UserHandler{
+		HandlerOption: hOpt,
+	}
+
 	handlers = handler.Handlers{
 		Health: healthHandler,
 		Auth:   authHandler,
+		User:   userHandler,
 	}
 	return
 }

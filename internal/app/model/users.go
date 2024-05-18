@@ -20,13 +20,15 @@ type User struct {
 	Status       string
 	Email        string
 	RoleID       uint
+	Role         *Role
+	PhoneNumber  string
 	PasswordHash string
-	CreatedBy    uint64
-	UpdatedBy    uint64
+	CreatedBy    uint
+	UpdatedBy    uint
 	DeletedBy    sql.NullInt64
-	UserCreate   *Admin `gorm:"foreignKey:CreatedBy"`
-	UserUpdate   *Admin `gorm:"foreignKey:UpdatedBy"`
-	UserDelete   *Admin `gorm:"foreignKey:DeletedBy"`
+	// UserCreate   *Admin `gorm:"foreignKey:CreatedBy"`
+	// UserUpdate   *Admin `gorm:"foreignKey:UpdatedBy"`
+	// UserDelete   *Admin `gorm:"foreignKey:DeletedBy"`
 }
 
 // TableName sets the insert table name for this struct type

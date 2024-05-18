@@ -39,6 +39,31 @@ var (
 			Icon:        constant.ErrIconURL,
 		})
 	}
+	ErrDataNotFound = func() error {
+		return ErrorCreationWithTitle("Gagal", "Data tidak ditemukan", "06", http.StatusNotFound, errorData{
+			PrimaryText: "OK",
+			Icon:        constant.ErrIconURL,
+		})
+	}
+	ErrUnauthorized = func() error {
+		return ErrorCreationWithTitle("Gagal", "Tidak dikenal: akses ditolak karena credential tidak valid", "07", http.StatusUnauthorized, errorData{
+			PrimaryText: "OK",
+			Icon:        constant.ErrIconURL,
+		})
+	}
+	ErrUserDontHavePermission = func() error {
+		return ErrorCreationWithTitle("Gagal", "Akun anda tidak memiliki akses ke resource ini", "19", http.StatusForbidden, errorData{
+			PrimaryText: "OK",
+			Icon:        constant.ErrIconURL,
+		})
+	}
+	ErrDataRelatedToOtherData = func() error {
+		return ErrorCreationWithTitle("Gagal", "Data tidak dapat dihapus karena terkait dengan data lainnya", "20", http.StatusUnprocessableEntity, errorData{
+			PrimaryText: "OK",
+			Icon:        constant.ErrIconURL,
+		})
+	}
+
 	//Kesalahan tidak diketahui
 	ErrUnknownError = func(message string) error {
 		return ErrorCreationWithTitle("Gagal", fmt.Sprintf("Kesalahan tidak diketahui : %s", message), "99", http.StatusInternalServerError, errorData{

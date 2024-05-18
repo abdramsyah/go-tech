@@ -3,9 +3,10 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/gomodule/redigo/redis"
 	"github.com/im7mortal/kmutex"
-	"time"
 )
 
 type ICache interface {

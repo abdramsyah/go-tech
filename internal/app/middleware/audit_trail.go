@@ -2,10 +2,8 @@ package middleware
 
 import (
 	"fmt"
-	"go-tech/internal/app/constant"
 	"go-tech/internal/app/dto"
 	"go-tech/internal/app/util"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 )
@@ -21,10 +19,10 @@ func (m *CustomMiddleware) AuditTrailMiddleware(next echo.HandlerFunc) echo.Hand
 		}
 		actx, err := util.NewAppContext(c)
 		if err != nil {
-			resp := dto.FailedHttpResponse("", constant.ErrUnauthorized, nil)
-			return c.JSON(http.StatusUnauthorized, resp)
+			resp := dto.FailedHttpResponse(err, nil)
+			return c.JSON(resp.HttpStatus, resp)
 		}
-		adminID := actx.GetAdminID()
+		userID := actx.GetUserID()
 		urlString := c.Request().URL.String()
 
 		//Get request body
@@ -37,7 +35,7 @@ func (m *CustomMiddleware) AuditTrailMiddleware(next echo.HandlerFunc) echo.Hand
 		//c.Request().Body = bodyBytesCopy
 
 		req := dto.AuditTrailRequest{
-			AdminID:   uint(adminID),
+			UserID:    uint(userID),
 			URL:       fmt.Sprintf("[%s] %s", c.Request().Method, urlString),
 			RouteName: routeName,
 		}

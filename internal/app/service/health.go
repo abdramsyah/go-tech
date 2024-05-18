@@ -2,13 +2,12 @@ package service
 
 import (
 	"go-tech/internal/app/dto"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 )
 
 type IHealthService interface {
-	CheckHealth(ctx echo.Context) (status int, resp dto.HealthResponse)
+	CheckHealth(ctx echo.Context) (resp dto.HealthResponse)
 }
 
 type healthService struct {
@@ -21,8 +20,7 @@ func NewHealthService(opt Option) IHealthService {
 	}
 }
 
-func (s *healthService) CheckHealth(ctx echo.Context) (status int, resp dto.HealthResponse) {
-	status = http.StatusOK
+func (s *healthService) CheckHealth(ctx echo.Context) (resp dto.HealthResponse) {
 	resp = dto.HealthResponse{Message: "OK"}
 	return
 }

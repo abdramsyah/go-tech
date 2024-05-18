@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"go-tech/internal/app/constant"
 	"go-tech/internal/app/dto"
+	"go-tech/internal/app/util"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -13,12 +13,12 @@ func (m *CustomMiddleware) RBACMiddleware(object string, action string) echo.Mid
 		return func(c echo.Context) error {
 			isPermitted, err := m.Service.Auth.PermissionCheck(c, object, action)
 			if err != nil {
-				data := dto.FailedHttpResponse("", "Failed to do permission check", nil)
-				return c.JSON(http.StatusInternalServerError, data)
+				data := dto.FailedHttpResponse(util.ErrUnknownError("Gagal melakukan pengecekan akses"), nil)
+				return c.JSON(data.HttpStatus, data)
 			}
 			if !isPermitted {
-				data := dto.FailedHttpResponse("", constant.ErrUnauthorized, nil)
-				return c.JSON(http.StatusForbidden, data)
+				data := dto.FailedHttpResponse(util.ErrUserDontHavePermission(), nil)
+				return c.JSON(data.HttpStatus, data)
 			}
 			return next(c)
 		}
@@ -31,12 +31,12 @@ func (m *CustomMiddleware) RBACBatchMiddleware(request [][]interface{}) echo.Mid
 		return func(c echo.Context) error {
 			isPermitted, err := m.Service.Auth.BatchPermissionCheck(c, request)
 			if err != nil {
-				data := dto.FailedHttpResponse("", "Failed to do permission check", nil)
+				data := dto.FailedHttpResponse(util.ErrUnknownError("Gagal melakukan pengecekan akses"), nil)
 				return c.JSON(http.StatusInternalServerError, data)
 			}
 			if !isPermitted {
-				data := dto.FailedHttpResponse("", constant.ErrUnauthorized, nil)
-				return c.JSON(http.StatusForbidden, data)
+				data := dto.FailedHttpResponse(util.ErrUserDontHavePermission(), nil)
+				return c.JSON(data.HttpStatus, data)
 			}
 			return next(c)
 		}

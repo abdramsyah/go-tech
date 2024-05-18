@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"go-tech/internal/app/dto"
 	"go-tech/internal/app/util"
 	"net/http"
@@ -14,111 +13,102 @@ type AuthHandler struct {
 	HandlerOption
 }
 
-func (h AuthHandler) Register(c echo.Context) (status int, resp dto.HttpResponse) {
-	fmt.Println(">>> TEST <<< 1")
+func (h AuthHandler) Register(c echo.Context) (resp dto.HttpResponse) {
 	var err error
 	req := new(dto.RegisterRequest)
 	if err = c.Bind(req); err != nil {
 		h.HandlerOption.Options.Logger.Error("Error bind request",
 			zap.Error(err),
 		)
-		status = http.StatusBadRequest
-		resp = dto.FailedHttpResponse("", "Error bind request", nil)
+		resp = dto.FailedHttpResponse(err, nil)
 		return
 	}
-	fmt.Println(">>> TEST <<< 1.2")
 
 	err = req.Validate()
 	if err != nil {
-		status = http.StatusBadRequest
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
-		return
-	}
-	fmt.Println(">>> TEST <<< 2")
-	err = h.Services.Auth.Register(c, req)
-	if err != nil {
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
+		resp = dto.FailedHttpResponse(err, nil)
 		return
 	}
 
-	resp = dto.SuccessHttpResponse("", "Register succeed", nil)
+	err = h.Services.Auth.Register(c, req)
+	if err != nil {
+		resp = dto.FailedHttpResponse(err, nil)
+		return
+	}
+
+	resp = dto.SuccessHttpResponse(http.StatusOK, "", "Register success", nil)
 	return
 }
 
-func (h AuthHandler) Login(c echo.Context) (status int, resp dto.HttpResponse) {
+func (h AuthHandler) Login(c echo.Context) (resp dto.HttpResponse) {
 	var err error
 	req := new(dto.LoginRequest)
 	if err = c.Bind(req); err != nil {
 		h.HandlerOption.Options.Logger.Error("Error bind request",
 			zap.Error(err),
 		)
-		status = http.StatusBadRequest
-		resp = dto.FailedHttpResponse("", "Error bind request", nil)
+		resp = dto.FailedHttpResponse(util.ErrBindRequest(), nil)
 		return
 	}
 
 	err = req.Validate()
 	if err != nil {
-		status = http.StatusBadRequest
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
+		resp = dto.FailedHttpResponse(err, nil)
 		return
 	}
 
-	status, token, err := h.Services.Auth.Login(c, req)
+	token, err := h.Services.Auth.Login(c, req)
 	if err != nil {
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
+		resp = dto.FailedHttpResponse(err, nil)
 		return
 	}
 
-	resp = dto.SuccessHttpResponse("", "Login succeed", token)
+	resp = dto.SuccessHttpResponse(http.StatusOK, "", "Login success", token)
 	return
 }
 
-func (h AuthHandler) Logout(c echo.Context) (status int, resp dto.HttpResponse) {
+func (h AuthHandler) Logout(c echo.Context) (resp dto.HttpResponse) {
 	var err error
 	actx, err := util.NewAppContext(c)
 	if err != nil {
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
+		resp = dto.FailedHttpResponse(err, nil)
 		return
 	}
 
-	adminID := actx.GetAdminID()
+	userID := actx.GetUserID()
 	accessUUID := actx.GetAccessUUID()
-	status, err = h.Services.Auth.Logout(c, adminID, accessUUID)
+	err = h.Services.Auth.Logout(c, userID, accessUUID)
 	if err != nil {
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
+		resp = dto.FailedHttpResponse(err, nil)
 		return
 	}
 
-	resp = dto.SuccessHttpResponse("", "Logout succeed", nil)
+	resp = dto.SuccessHttpResponse(http.StatusOK, "", "Logout success", nil)
 	return
 }
-
-func (h AuthHandler) RefreshToken(c echo.Context) (status int, resp dto.HttpResponse) {
+func (h AuthHandler) RefreshToken(c echo.Context) (resp dto.HttpResponse) {
 	var err error
 	req := new(dto.RefreshTokenRequest)
 	if err = c.Bind(req); err != nil {
 		h.HandlerOption.Options.Logger.Error("Error bind request",
 			zap.Error(err),
 		)
-		status = http.StatusBadRequest
-		resp = dto.FailedHttpResponse("", "Error bind request", nil)
+		resp = dto.FailedHttpResponse(util.ErrBindRequest(), nil)
 		return
 	}
 
 	err = req.Validate()
 	if err != nil {
-		status = http.StatusBadRequest
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
+		resp = dto.FailedHttpResponse(util.ErrRequestValidation(err.Error()), nil)
 		return
 	}
 
-	status, token, err := h.Services.Auth.RefreshToken(c, req.RefreshToken)
+	token, err := h.Services.Auth.RefreshToken(c, req.RefreshToken)
 	if err != nil {
-		resp = dto.FailedHttpResponse("", err.Error(), nil)
+		resp = dto.FailedHttpResponse(err, nil)
 		return
 	}
 
-	resp = dto.SuccessHttpResponse("", "Token refreshed", token)
+	resp = dto.SuccessHttpResponse(http.StatusOK, "", "Refresh token success", token)
 	return
 }

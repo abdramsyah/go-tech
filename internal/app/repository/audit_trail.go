@@ -33,8 +33,8 @@ func (r *auditTrailRepository) Create(ctx echo.Context, data *model.AuditTrails)
 }
 
 func (r *auditTrailRepository) generateCondition(db *gorm.DB, filter *dto.AuditTrailFilter) *gorm.DB {
-	if filter.AdminEmail != nil {
-		db = db.Where("LOWER(admin_email) like LOWER(?)", *filter.AdminEmail+"%")
+	if filter.UserEmail != nil {
+		db = db.Where("LOWER(admin_email) like LOWER(?)", *filter.UserEmail+"%")
 	}
 	if filter.Action != nil {
 		db = db.Where("action = ?", *filter.Action)

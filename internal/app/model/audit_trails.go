@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/guregu/null"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -22,10 +22,10 @@ DB Table Details
 
 Table: audit_trails
 [ 0] id                                             INT8                 null: false  primary: true   isArray: false  auto: true   col: INT8            len: -1      default: []
-[ 1] admin_id                                       INT8                 null: false  primary: false  isArray: false  auto: false  col: INT8            len: -1      default: []
-[ 2] admin_email                                    VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
-[ 3] admin_name                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
-[ 4] admin_role                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
+[ 1] user_id                                       INT8                 null: false  primary: false  isArray: false  auto: false  col: INT8            len: -1      default: []
+[ 2] user_email                                    VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
+[ 3] user_name                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
+[ 4] user_role                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
 [ 5] action                                         VARCHAR(150)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 150     default: []
 [ 6] url                                            VARCHAR(255)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 255     default: []
 [ 7] created_at                                     TIMESTAMP            null: false  primary: false  isArray: false  auto: false  col: TIMESTAMP       len: -1      default: [now()]
@@ -33,7 +33,7 @@ Table: audit_trails
 
 JSON Sample
 -------------------------------------
-{    "id": 61,    "admin_id": 51,    "admin_email": "MdMMhCDSNPfnPbwqRoyFVpqQl",    "admin_name": "CmbYLsyHsUFgRIpaIMiqxCGIU",    "admin_role": "ykqalxqyUQrQLnOBYjrjmeEkS",    "action": "qPCgohPVhXABHSvxrEDFLBnZB",    "url": "qUZZvYwPwSaIhBVHFrHKNsgDC",    "created_at": "2264-02-27T01:33:24.530226326+07:00"}
+{    "id": 61,    "user_id": 51,    "user_email": "MdMMhCDSNPfnPbwqRoyFVpqQl",    "user_name": "CmbYLsyHsUFgRIpaIMiqxCGIU",    "user_role": "ykqalxqyUQrQLnOBYjrjmeEkS",    "action": "qPCgohPVhXABHSvxrEDFLBnZB",    "url": "qUZZvYwPwSaIhBVHFrHKNsgDC",    "created_at": "2264-02-27T01:33:24.530226326+07:00"}
 
 
 
@@ -43,14 +43,14 @@ JSON Sample
 type AuditTrails struct {
 	//[ 0] id                                             INT8                 null: false  primary: true   isArray: false  auto: true   col: INT8            len: -1      default: []
 	ID int64 `gorm:"primary_key;AUTO_INCREMENT;column:id;type:INT8;" json:"id"`
-	//[ 1] admin_id                                       INT8                 null: false  primary: false  isArray: false  auto: false  col: INT8            len: -1      default: []
-	AdminID int64 `gorm:"column:admin_id;type:INT8;" json:"admin_id"`
-	//[ 2] admin_email                                    VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
-	AdminEmail string `gorm:"column:admin_email;type:VARCHAR;size:100;" json:"admin_email"`
-	//[ 3] admin_name                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
-	AdminName string `gorm:"column:admin_name;type:VARCHAR;size:100;" json:"admin_name"`
-	//[ 4] admin_role                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
-	AdminRole string `gorm:"column:admin_role;type:VARCHAR;size:100;" json:"admin_role"`
+	//[ 1] user_id                                       INT8                 null: false  primary: false  isArray: false  auto: false  col: INT8            len: -1      default: []
+	UserID uint `gorm:"column:user_id;type:INT8;" json:"user_id"`
+	//[ 2] user_email                                    VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
+	UserEmail string `gorm:"column:user_email;type:VARCHAR;size:100;" json:"user_email"`
+	//[ 3] user_name                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
+	UserName string `gorm:"column:user_name;type:VARCHAR;size:100;" json:"user_name"`
+	//[ 4] user_role                                     VARCHAR(100)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 100     default: []
+	UserRole string `gorm:"column:user_role;type:VARCHAR;size:100;" json:"user_role"`
 	//[ 5] action                                         VARCHAR(150)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 150     default: []
 	Action string `gorm:"column:action;type:VARCHAR;size:150;" json:"action"`
 	//[ 6] url                                            VARCHAR(255)         null: false  primary: false  isArray: false  auto: false  col: VARCHAR         len: 255     default: []

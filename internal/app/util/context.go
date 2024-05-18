@@ -1,17 +1,15 @@
 package util
 
 import (
-	"errors"
-	"go-tech/internal/app/constant"
-
 	"github.com/labstack/echo/v4"
 	"github.com/twinj/uuid"
 )
 
 type AppContext struct {
 	echo.Context
-	adminID    *uint
+	userID     *uint
 	accessUUID *string
+	roleType   *string
 }
 
 func (c *AppContext) GetRequestID() string {
@@ -22,33 +20,41 @@ func (c *AppContext) GetRequestID() string {
 	return requestID
 }
 
-func (c *AppContext) SetAdminID(adminID uint) {
-	c.adminID = &adminID
+func (c *AppContext) SetUserID(userID uint) {
+	c.userID = &userID
 }
 
 func (c *AppContext) SetAccessUUID(accessUUID string) {
 	c.accessUUID = &accessUUID
 }
 
-func (c *AppContext) GetAdminID() uint {
-	return *c.adminID
+func (c *AppContext) SetRoleType(roleType string) {
+	c.roleType = &roleType
+}
+
+func (c *AppContext) GetUserID() uint {
+	return *c.userID
 }
 
 func (c *AppContext) GetAccessUUID() string {
 	return *c.accessUUID
 }
 
+func (c *AppContext) GetRoleType() string {
+	return *c.roleType
+}
+
 func NewEmptyAppContext(parent echo.Context) *AppContext {
-	return &AppContext{parent, nil, nil}
+	return &AppContext{parent, nil, nil, nil}
 }
 
 func NewAppContext(parent echo.Context) (*AppContext, error) {
 	pctx, ok := parent.(*AppContext)
 	if !ok {
-		return nil, errors.New(constant.ErrUnauthorized)
+		return nil, ErrUnauthorized()
 	}
-	if pctx.adminID == nil || pctx.accessUUID == nil {
-		return nil, errors.New(constant.ErrUnauthorized)
+	if pctx.userID == nil || pctx.accessUUID == nil {
+		return nil, ErrUnauthorized()
 	}
 	return pctx, nil
 }
